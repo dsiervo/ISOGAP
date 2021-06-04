@@ -9,7 +9,19 @@
 
 import numpy as np
 import nvector as nv
+from obspy.geodetics import gps2dist_azimuth
 import sys
+import os
+import multiprocessing as mp
+import glob
+"""import click
+
+
+@click.command()
+@click.option('-g', "--grids_dir", required=True, prompt=True, help='Waveform file name')
+@click.option('-o', "--output_dir", required=True, prompt=True, help='Dataless file name')
+@click.option('-m', "--pool_mode", default="avg", help='units to convert. Can be: DIS, VEL, ACC')
+@click.option('-p', "--plot", default=False, type=bool, help='Define if waveform will be plotted')"""
 
 #Calculates gaps for a list of azimuths 
 def gaps(Azz):
@@ -25,11 +37,12 @@ def gaps(Azz):
 
 #Calculates azimuths between two points
 def azimuth(Lon1,Lat1,Lon2,Lat2):
-    wgs84 = nv.FrameE(name='WGS84')
+    """wgs84 = nv.FrameE(name='WGS84')
     pointA = wgs84.GeoPoint(latitude=Lat1, longitude=Lon1, z=0, degrees=True)
     pointB = wgs84.GeoPoint(latitude=Lat2, longitude=Lon2, z=0, degrees=True)
     p_AB_N = pointA.delta_to(pointB)
-    azim = p_AB_N.azimuth_deg
+    azim = p_AB_N.azimuth_deg"""
+    azim = gps2dist_azimuth(Lat1, Lon1, Lat2, Lon2)[1]
     if azim < 0:
         azim += 360
     else:
@@ -44,6 +57,7 @@ def each_gap(lon,lat,net):
         azz.append(azim)
     GAP = max(gaps(azz))
     return GAP
+
 
 #reads stations file
 def read_stations(arc):
@@ -64,44 +78,63 @@ def read_stations(arc):
 
 
 #Ask for longitudes and latitudes for the study area
-def input_area():
-    #lons= input("Enter min and max longitudes separated by a comma:\n")
-    #lats= input("Enter min and max latitudes separated by a comma:\n")
-    lons = '-80,-67'
-    lats = '-3,14'
-    if len(lons.split(','))!=2 or len(lats.split(','))!=2:
+def input_area(custom=False):
+    if custom:
+        lons = input("Enter min and max longitudes separated by a comma: ")
+        lats = input("Enter min and max latitudes separated by a comma: ")
+    else:
+        lons = '-80,-67'
+        lats = '-3,14'
+    if len(lons.split(',')) != 2 or len(lats.split(',')) != 2:
         print("Bad input, try again\n")
         sys.exit()
     minlon = float(lons.split(',')[0])
     maxlon = float(lons.split(',')[1])
     minlat = float(lats.split(',')[0])
     maxlat = float(lats.split(',')[1])
-    if (minlon>=maxlon) or (minlat>=maxlat):
+    if (minlon >= maxlon) or (minlat >= maxlat):
         print("Wrong values, try again\n")
         sys.exit()
     return minlon, maxlon, minlat, maxlat
 
-#--------WORKOUT--------
-if len(sys.argv)<2:
-    print("No input file\n")
-    sys.exit()
 
-arc = sys.argv[1]
-NET = read_stations(arc)
-minlon, maxlon, minlat, maxlat = input_area()
-grid = float(input('Enter grid step in degrees:\n'))
-Lons = np.arange(minlon,maxlon,grid)
-Lats = np.arange(minlat,maxlat,grid)
+def azim_gap(sta_dir, grid, custom=False):
 
-year = input('Enter year:\n')
-out = open('gaps/%s_%s_grid.csv'%(year,grid), 'w')
-out.write('LON,LAT,GAP\n')
+    #sta_dir = input('\nEnter the directory containing the csv files with the stations coordinates:\n\t--> ')
+    #grid = float(input('Enter grid step in degrees:\n\t--> '))
+    minlon, maxlon, minlat, maxlat = input_area(custom)
+    Lons = np.arange(minlon, maxlon, grid)
+    Lats = np.arange(minlat, maxlat, grid)
 
-for i in Lons:
-    for j in Lats:
-        az_gap = each_gap(i,j,NET)
-        print(i,j,az_gap)
-        out.write('%s,%s,%4.2f\n'%(i,j,az_gap))
+    # Creatig grids folder if doesn't exist
+    output_dir = 'grids'
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)
 
-out.close()
+    sta_files = glob.glob(os.path.join(sta_dir, '*.csv'))
+    n = len(sta_files)
 
+    with mp.Pool(processes=mp.cpu_count()) as p:
+        p.map(write_grid,
+              zip([grid]*n, [Lons]*n, [Lats]*n, [output_dir]*n, sta_files))
+
+
+def write_grid(arguments):
+    grid, Lons, Lats, output_dir, arc = arguments
+    NET = read_stations(arc)
+    basename = os.path.basename(arc).split('.')[0]
+    output_file = os.path.join(output_dir, '%s_%s_grid.csv' % (basename, grid))
+    out = open(output_file, 'w')
+    out.write('LON,LAT,GAP\n')
+    for i in Lons:
+        for j in Lats:
+            az_gap = each_gap(i, j, NET)
+            print(i, j, az_gap)
+            out.write('%s,%s,%4.2f\n' % (i, j, az_gap))
+    out.close()
+    print('\n\t%s was created\n' % output_file)
+
+
+if __name__ == '__main__':
+    
+    azim_gap(False)
