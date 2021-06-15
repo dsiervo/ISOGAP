@@ -28,6 +28,22 @@ import click
 def main():
     pass
 
+@main.command()
+@click.option('-sd', "--stations_dir", required=True, prompt=True,
+              help='Directory containing the csv files with the stations coordinates')
+@click.option('-gs', "--grid_step", required=True,
+              default=0.25, type=float, prompt=True, help='Grid step in degrees')
+@click.option('-c', "--custom_quad", is_flag=True, prompt=True, help='Choose if you want to change de default quadrant: lats = -3,14 and lons = -80,-67')
+@click.option('-pm', "--pool_mode", prompt=True, default="avg", type=click.Choice(['avg', 'max', 'min'], 
+              case_sensitive=False), help='How to aggregate the data, averagin, maximum or minimum')
+@click.option('-s', "--show", is_flag=True, prompt=True, help='Define if the maps will be show while they are being created')
+@click.option('-gd', "--grids_dir", required=False, default='grids', help='Grids directory')
+def g_h(stations_dir, grid_step, custom_quad, grids_dir, pool_mode, show):
+    # computing
+    azim_gap(stations_dir, grid_step, custom_quad)
+    grids_dir = 'grids'
+    make_heatmaps(grids_dir, pool_mode, show)
+
 
 @main.command()
 @click.option('-sd', "--stations_dir", required=True, prompt=True,
@@ -37,14 +53,19 @@ def main():
 @click.option('-c', "--custom_quad", is_flag=True, prompt=True, help='Choose if you want to change de default quadrant: lats = -3,14 and lons = -80,-67')
 def grids(stations_dir, grid_step, custom_quad):
     azim_gap(stations_dir, grid_step, custom_quad)
-    
+
+
 @main.command()
 @click.option('-gd', "--grids_dir", required=True, prompt=True, help='Grids directory')
 @click.option('-pm', "--pool_mode", prompt=True, default="avg", type=click.Choice(['avg', 'max', 'min'], 
               case_sensitive=False), help='How to aggregate the data, averagin, maximum or minimum')
 @click.option('-s', "--show", is_flag=True, prompt=True, help='Define if the maps will be show while they are being created')
 def heatmaps(grids_dir, pool_mode, show):
-    
+    make_heatmaps(grids_dir, pool_mode, show)
+
+
+def make_heatmaps(grids_dir, pool_mode, show):
+
     output_dir = 'output_maps'
     grids = {}
     grids['big'] = [[3, 8, -77, -73], [7, 9, -76, -73], [9, 11, -75, -73],
@@ -83,7 +104,7 @@ def heatmaps(grids_dir, pool_mode, show):
                           plot=show)
         c += 1
 
-    print('\n\tArchivos de salida en la carpeta: %s'%output_dir)
+    print('\n\n\tArchivos de salida en la carpeta: %s\n'%output_dir)
 
 
 def iso_gap_map(df, year, main_dir='mapas', plot=False):
@@ -248,7 +269,9 @@ def map_and_grids(df, year, cuadrants, sep=0.5,
                 pad_inches=0)
     if plot:
         plt.show()
-    fig.clf()
+    plt.cla()
+    plt.clf()
+    plt.close('all')
 
 
 if __name__ == '__main__':
