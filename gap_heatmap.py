@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/home/dsiervo/miniconda3/bin/python
 # -*- coding: utf-8 -*-
 """
 v(1) 2021-05-28

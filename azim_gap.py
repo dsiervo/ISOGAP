@@ -1,3 +1,6 @@
+#!/home/dsiervo/miniconda3/bin/python
+# -*- coding: utf-8 -*-
+
 #                           ISOGAP 0.1
 #This script calculates the primary azimuthal gap for a certain network geometry
 #Input:
