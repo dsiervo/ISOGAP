@@ -29,8 +29,9 @@ def main():
     pass
 
 @main.command()
-@click.option('-sd', "--stations_dir", required=True, prompt=True,
-              help='Directory containing the csv files with the stations coordinates')
+@click.option('-sd', "--stations_dir", required=True, default='no',
+              prompt='Stations dir. Press enter for default ones',
+              help='Directory containing the csv files with the stations coordinates, "no" if you want to use the default ones')
 @click.option('-gs', "--grid_step", required=True,
               default=0.25, type=float, prompt=True, help='Grid step in degrees')
 @click.option('-c', "--custom_quad", is_flag=True, prompt=True, help='Choose if you want to change de default quadrant: lats = -3,14 and lons = -80,-67')
@@ -46,8 +47,9 @@ def g_h(stations_dir, grid_step, custom_quad, grids_dir, pool_mode, show):
 
 
 @main.command()
-@click.option('-sd', "--stations_dir", required=True, prompt=True,
-              help='Directory containing the csv files with the stations coordinates')
+@click.option('-sd', "--stations_dir", required=True, default='no',
+              prompt='Stations dir. Press enter for default ones',
+              help='Directory containing the csv files with the stations coordinates, "no" if you want to use the default ones')
 @click.option('-gs', "--grid_step", required=True,
               default=0.25, type=float, prompt=True, help='Grid step in degrees')
 @click.option('-c', "--custom_quad", is_flag=True, prompt=True, help='Choose if you want to change de default quadrant: lats = -3,14 and lons = -80,-67')
