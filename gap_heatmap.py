@@ -260,13 +260,13 @@ def map_and_grids(df, year, cuadrants, sep=0.5,
 
     mean, std = get_mean_st(grids_list)
 
-    plt.figtext(0.5, 0.87, 'GAP promedio %s: $%.1f \pm %.1f$'%(year, mean, std),
+    plt.figtext(0.5, 0.87, 'GAP promedio %s: $%.1f \pm %.1f$' % (year, mean, std),
                 fontsize=18, ha='center')
 
     output_dir2 = os.path.join(output_dir, 'heatmaps')
     if not os.path.exists(output_dir2):
         os.mkdir(output_dir2)
-    output_path = os.path.join(output_dir2, 'heatmap_%s'%year)
+    output_path = os.path.join(output_dir2, 'heatmap_%s' % year)
     plt.savefig(output_path, bbox_inches='tight',
                 pad_inches=0)
     if plot:
