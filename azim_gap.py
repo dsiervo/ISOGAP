@@ -103,7 +103,7 @@ def input_area(custom=False):
 
 def azim_gap(sta_dir, grid, custom=False):
 
-    if sta_dir in ['no', 'n', 'NO', 'No', 'N', '']:
+    if sta_dir in ['no', 'n', 'NO', 'No', 'N', 'default', 'dfalut']:
         scripts_dir = os.path.dirname(os.path.abspath(__file__))
         sta_dir = os.path.join(scripts_dir, 'station_coordinates')
     #sta_dir = input('\nEnter the directory containing the csv files with the stations coordinates:\n\t--> ')
