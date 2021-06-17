@@ -48,7 +48,7 @@ def g_h(stations_dir, grid_step, custom_quad, grids_dir, pool_mode, show):
 
 @main.command()
 @click.option('-sd', "--stations_dir", required=True, default='no',
-              prompt='Stations dir. Press enter for default ones',
+              prompt='If you have, enter the directory contaning the cvs files with the stations coordinates. Return for default ones',
               help='Directory containing the csv files with the stations coordinates, "no" if you want to use the default ones')
 @click.option('-gs', "--grid_step", required=True,
               default=0.25, type=float, prompt=True, help='Grid step in degrees')
@@ -75,6 +75,23 @@ def make_heatmaps(grids_dir, pool_mode, show):
 
     grids['center'] = [[3, 5, -77, -74], [5, 7, -77, -73], [7, 8, -76, -74]]
 
+
+    # make sure grids directory exist
+    if not os.path.exists(grids_dir):
+        print(f'\n\n\tNo existe el directorio {grids_dir} con las grillas de gap teórico\n\n')
+        print('Si no tiene grillas de gap teórico puede generarla con los')
+        sta_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                               'station_coordinates')
+        print(f'archivos de coordenadsa de estaciones por defecto, en la ruta {sta_dir}')
+        mensage = f'''
+        No existe el directorio {grids_dir} con las grillas de gap teórico
+        
+        Si no tiene grillas de gap teórico puede generarlas con los archivos
+        de coordenadas de estaciones por defecto, que se encuentran en la ruta {sta_dir}
+        y hacer los respectivos heatmaps con el comando:
+        
+        gap_heatmap.py g-h
+        '''
     # creating output file if doesn't exist
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
