@@ -228,7 +228,12 @@ def map_and_grids(df, year, cuadrants, sep=0.5,
         grids_list.append(gap_grid)
 
         # grid 1
-        gap_plot = ax.pcolormesh(X, Y, gap_grid,
+        # Debido a que matplotlib a partir de la versión 3.3 no permite usar shading='flat'
+        # cuando C (gap_grid) tiene la misma dimensión de X y Y, para que no coloque
+        # shading = 'nearest' se debe poner explícitamente este atributo y quitarle una dimensión
+        # a C en cada eje. Se escoje quitar la última dimensión en cada eje debido a que por
+        # defecto toma el valor de la esquina superior izquierda.
+        gap_plot = ax.pcolormesh(X, Y, gap_grid[:-1, :-1], shading='flat',
                                  transform=ccrs.PlateCarree(),
                                  vmin=df['GAP'].min(), vmax=df['GAP'].max())
 
