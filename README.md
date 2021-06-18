@@ -12,12 +12,24 @@ The main script (gap_heatmap.py) has 3 commands that allow to perform the follow
 ![contour](output_maps/contours/contour_2015.png)
 
 ## Installation
+### Prerequisites
+* python 3.7 - 3.9
+
+For non anaconda python installations:
+```
+$ apt-get install libproj-dev proj-data proj-bin  
+$ apt-get install libgeos-dev  
+$ pip install cython 
+```
+
+### Non anaconda users
 Clone or download this repository and then type:
 
 ```
 $ pip install -r requirements.txt
 ```
 
+### Anaconda users
 If you have an anaconda installation:
 
 ```
