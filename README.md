@@ -22,8 +22,10 @@ $ apt-get install libgeos-dev
 $ pip install cython 
 ```
 
+### Procedure
+Clone or download this repository and then:
+
 ### Non anaconda users
-Clone or download this repository and then type:
 
 ```
 $ pip install -r requirements.txt
