@@ -25,13 +25,13 @@ $ pip install cython
 ### Procedure
 Clone or download this repository and then:
 
-### Non anaconda users
+#### Non anaconda users
 
 ```
 $ pip install -r requirements.txt
 ```
 
-### Anaconda users
+#### Anaconda users
 If you have an anaconda installation:
 
 ```
