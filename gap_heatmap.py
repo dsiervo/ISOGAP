@@ -39,22 +39,30 @@ def main():
               case_sensitive=False), help='How to aggregate the data, averagin, maximum or minimum')
 @click.option('-s', "--show", is_flag=True, prompt=True, help='Define if the maps will be show while they are being created')
 @click.option('-gd', "--grids_dir", required=False, default='grids', help='Grids directory')
-def g_h(stations_dir, grid_step, custom_quad, grids_dir, pool_mode, show):
+@click.option('-lo', "--lons", required=False, prompt=True, default='-80,-67', help='Longitude range like "-80,-67"')
+@click.option('-la', "--lats", required=False, prompt=True, default='-3,14', help='Latitude range like "-3,14"')
+@click.option('-dth', "--dist_thr", required=False, prompt="Distance threshold in km to consider a station",
+              default=100, help='Distance threshold in km to consider a station')
+def g_h(stations_dir, grid_step, custom_quad, grids_dir, pool_mode, show, lons, lats, dist_thr):
     # computing
-    azim_gap(stations_dir, grid_step, custom_quad)
-    grids_dir = 'grids'
-    make_heatmaps(grids_dir, pool_mode, show)
+    azim_gap(stations_dir, grid_step, custom_quad, grids_dir, lons, lats, dist_thr)
+    #grids_dir = 'grids'
+    make_heatmaps(grids_dir, pool_mode, show, lons, lats)
 
 
 @main.command()
 @click.option('-sd', "--stations_dir", required=True, default='default',
               prompt="Stations directory. Press enter if you don't have one",
               help='Directory containing the csv files with the stations coordinates, "default" if you want to use the default ones')
+@click.option('-lo', "--lons", required=False, prompt=True, default='-80,-67', help='Longitude range like "-80,-67"')
+@click.option('-la', "--lats", required=False, prompt=True, default='-3,14', help='Latitude range like "-3,14"')
+@click.option('-gd', "--grids_dir", required=False, default='grids', help='Grids directory')
 @click.option('-gs', "--grid_step", required=True,
               default=0.25, type=float, prompt=True, help='Grid step in degrees')
 @click.option('-c', "--custom_quad", is_flag=True, prompt=True, help='Choose if you want to change de default quadrant: lats = -3,14 and lons = -80,-67')
-def grids(stations_dir, grid_step, custom_quad):
-    azim_gap(stations_dir, grid_step, custom_quad)
+@click.option('-dth', "--dist_thr", required=False, prompt=True, default=100, help='Distance threshold in km to consider a station')
+def grids(stations_dir, grid_step, custom_quad, grids_dir, lons, lat):
+    azim_gap(stations_dir, grid_step, custom_quad, grids_dir, lons, lat)
 
 
 @main.command()
@@ -62,18 +70,27 @@ def grids(stations_dir, grid_step, custom_quad):
 @click.option('-pm', "--pool_mode", prompt=True, default="avg", type=click.Choice(['avg', 'max', 'min'], 
               case_sensitive=False), help='How to aggregate the data, averagin, maximum or minimum')
 @click.option('-s', "--show", is_flag=True, prompt=True, help='Define if the maps will be show while they are being created')
-def heatmaps(grids_dir, pool_mode, show):
-    make_heatmaps(grids_dir, pool_mode, show)
+@click.option('-lo', "--lons", required=False, prompt=True, default='-80,-67', help='Longitude range like "-80,-67"')
+@click.option('-la', "--lats", required=False, prompt=True, default='-3,14', help='Latitude range like "-3,14"')
+def heatmaps(grids_dir, pool_mode, show, lons, lats):
+    make_heatmaps(grids_dir, pool_mode, show, lons, lats)
 
 
-def make_heatmaps(grids_dir, pool_mode, show):
+def make_heatmaps(grids_dir, pool_mode, show, lons, lats):
 
     output_dir = 'output_maps'
     grids = {}
-    grids['big'] = [[3, 8, -77, -73], [7, 9, -76, -73], [9, 11, -75, -73],
+    """grids['big'] = [[3, 8, -77, -73], [7, 9, -76, -73], [9, 11, -75, -73],
                     [1, 3, -78, -74], [11, 12, -73, -72], [1, 2, -79, -78]]
 
-    grids['center'] = [[3, 5, -77, -74], [5, 7, -77, -73], [7, 8, -76, -74]]
+    grids['center'] = [[3, 5, -77, -74], [5, 7, -77, -73], [7, 8, -76, -74]]"""
+    
+    # grids for Delawere Basin Texas
+    grids['delaware'] = [[30, 35, -103, -100], [35, 37, -102, -100], [37, 38, -101, -100]]
+    # grids for Midland Basin Texas
+    grids['midland'] = [[31, 33, -103, -101], [33, 34, -102, -101], [34, 35, -101, -100]]
+    # grids for Eagle Ford Basin Texas
+    grids['eagle_ford'] = [[27, 29, -99, -98], [29, 30, -98, -97], [30, 31, -97, -96]]
 
 
     # make sure grids directory exist
@@ -117,9 +134,9 @@ def make_heatmaps(grids_dir, pool_mode, show):
             df = pd.read_csv(i)
             # only plot contours once
             if c == 0:
-                iso_gap_map(df, year, main_dir=output_dir, plot=show)
+                iso_gap_map(df, year, lons, lats, main_dir=output_dir, plot=show)
 
-            map_and_grids(df, year, grid, sep,
+            map_and_grids(df, year, lons, lats, grid, sep,
                           pool_mode=pool_mode,
                           output_dir=sub_output_dir,
                           plot=show)
@@ -128,7 +145,7 @@ def make_heatmaps(grids_dir, pool_mode, show):
     print('\n\n\tArchivos de salida en la carpeta: %s\n'%output_dir)
 
 
-def iso_gap_map(df, year, main_dir='mapas', plot=False):
+def iso_gap_map(df, year, lons, lats, main_dir='mapas', plot=False):
     lon_bins = np.arange(df['LON'].min(), df['LON'].max(), 0.25) 
     lat_bins = np.arange(df['LAT'].min(), df['LAT'].max(), 0.25) 
 
@@ -138,7 +155,9 @@ def iso_gap_map(df, year, main_dir='mapas', plot=False):
     fig = plt.figure(figsize=(30,30))
 
     ax = fig.add_subplot(1, 1, 1, projection=ccrs.Mercator())
-    ax.set_extent([-82, -65, -2, 14])
+    #ax.set_extent([-82, -65, -2, 14])
+    ax.set_extent([float(lons.split(',')[0]), float(lons.split(',')[1]),
+                   float(lats.split(',')[0]), float(lats.split(',')[1])])
 
     ax.contour(X, Y, gap_grid, colors='black', linewidths=0.5,
                 transform=ccrs.PlateCarree())
@@ -147,6 +166,8 @@ def iso_gap_map(df, year, main_dir='mapas', plot=False):
 
     ax.coastlines(resolution='50m')
     ax.add_feature(cfeature.BORDERS, linestyle=':')
+    # Add US states
+    ax.add_feature(cfeature.STATES.with_scale('10m'))
 
     # add colorbar
     cbar = fig.colorbar(g, orientation='horizontal', shrink=0.625, aspect=20,
@@ -225,14 +246,17 @@ def get_mean_st(grids):
     return np.mean(l_flat), np.std(l_flat)
 
 
-def map_and_grids(df, year, cuadrants, sep=0.5,
+def map_and_grids(df, year, lons, lats, cuadrants, sep=0.5,
                   pool_mode='avg', output_dir='mapas/heatmaps/', plot=False):
 
     grids_list = []
     d = 0.5  # distance to put correctly numbers on heatmap plot
     fig = plt.figure(figsize=(25, 25), clear=True)
     ax = fig.add_subplot(1, 1, 1, projection=ccrs.PlateCarree())
-    ax.set_extent([-82, -65, -2, 14])
+    #ax.set_extent([-82, -65, -2, 14])
+    ax.set_extent([float(lons.split(',')[0]), float(lons.split(',')[1]),
+                   float(lats.split(',')[0]), float(lats.split(',')[1])])
+    
 
     for cuad in cuadrants:
         assert isinstance(cuad, list), "\n\t CUIDADO el cuadrante %s no es una lista\n"%cuad
@@ -269,7 +293,7 @@ def map_and_grids(df, year, cuadrants, sep=0.5,
     cbar.set_label('GAP', size=14)
 
     ax.coastlines(resolution='10m')
-    # ax.add_feature(cfeature.STATES.with_scale('10m'), edgecolor='gray')
+    ax.add_feature(cfeature.STATES.with_scale('10m'), edgecolor='gray')
     ax.add_feature(cfeature.BORDERS.with_scale('10m'))
     # ax.stock_img()
     # Create a feature for States/Admin 1 regions at 1:50m from Natural Earth
@@ -279,13 +303,18 @@ def map_and_grids(df, year, cuadrants, sep=0.5,
         scale='10m',
         facecolor='none')
     ax.add_feature(states_provinces)
-    ax.set_xticks(range(-82, -65), crs=ccrs.PlateCarree())
-    ax.set_yticks(range(-2, 15), crs=ccrs.PlateCarree())
+    #ax.set_xticks(range(-82, -65), crs=ccrs.PlateCarree())
+    lons_int = [int(round(float(i))) for i in lons.split(',')]
+    lat_int = [int(round(float(i))) for i in lats.split(',')]
+    
+    ax.set_xticks(range(lons_int[0], lons_int[1]), crs=ccrs.PlateCarree())
+    #ax.set_yticks(range(-2, 15), crs=ccrs.PlateCarree())
+    ax.set_yticks(range(lat_int[0], lat_int[1]), crs=ccrs.PlateCarree())
 
     mean, std = get_mean_st(grids_list)
+    print('\n\tGAP promedio %s: %.1f ± %.1f'%(year, mean, std))
 
-    plt.figtext(0.5, 0.87, 'GAP promedio %s: $%.1f \pm %.1f$' % (year, mean, std),
-                fontsize=18, ha='center')
+    #plt.figtext(0.5, 0.87, 'GAP promedio %s: $%.1f \\pm %.1f$' % (year, mean, std))
 
     output_dir2 = os.path.join(output_dir, 'heatmaps')
     if not os.path.exists(output_dir2):

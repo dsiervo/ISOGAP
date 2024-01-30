@@ -40,25 +40,47 @@ def gaps(Azz):
 
 #Calculates azimuths between two points
 def azimuth(Lon1,Lat1,Lon2,Lat2):
-    """wgs84 = nv.FrameE(name='WGS84')
-    pointA = wgs84.GeoPoint(latitude=Lat1, longitude=Lon1, z=0, degrees=True)
-    pointB = wgs84.GeoPoint(latitude=Lat2, longitude=Lon2, z=0, degrees=True)
-    p_AB_N = pointA.delta_to(pointB)
-    azim = p_AB_N.azimuth_deg"""
-    azim = gps2dist_azimuth(Lat1, Lon1, Lat2, Lon2)[1]
+    """Compute the azimuth between two points
+    :param Lon1: Longitude of the first point
+    :param Lat1: Latitude of the first point
+    """
+    #azim = gps2dist_azimuth(Lat1, Lon1, Lat2, Lon2)[1]
+    # get azimuth and distance
+    dist, azim, baz = gps2dist_azimuth(Lat1, Lon1, Lat2, Lon2)
     if azim < 0:
         azim += 360
     else:
         pass
-    return azim
+    return azim, dist
 
 #calculates isogap for each point
-def each_gap(lon,lat,net):
+def each_gap(lon,lat,net, distance_threshold=100):
+    """Compute the maximum azimuthal gap for a point for a given network.
+    
+    Parameters
+    ----------
+    :param lon: Longitude of the point
+    :param lat: Latitude of the point
+    :param net: Dictionary with the network coordinates
+    :param distance_threshold: Maximum distance in km to consider a station
+    
+    Returns
+    -------
+    :return: Maximum azimuthal gap
+    """
     azz=[]
     for sta in net:
-        azim = azimuth(lon,lat,net[sta][0], net[sta][1])
-        azz.append(azim)
-    GAP = max(gaps(azz))
+        azim, dist = azimuth(lon,lat,net[sta][0], net[sta][1])
+        dist_km = dist/1000
+        #print(f"Distance between {sta} and {lon},{lat} is {dist_km} km. Threshold is {distance_threshold} km")
+        if dist_km < distance_threshold:
+            azz.append(azim)
+    #GAP = max(gaps(azz))
+    gap_sequence = gaps(azz)
+    if gap_sequence:
+        GAP = max(gap_sequence)
+    else:
+        GAP = 360
     return GAP
 
 
@@ -81,13 +103,12 @@ def read_stations(arc):
 
 
 #Ask for longitudes and latitudes for the study area
-def input_area(custom=False):
+def input_area(custom=False, lons='-80,-67', lats='-3,14'):
     if custom:
-        lons = input("Enter min and max longitudes separated by a comma: ")
-        lats = input("Enter min and max latitudes separated by a comma: ")
-    else:
-        lons = '-80,-67'
-        lats = '-3,14'
+        if not lons or not lats:
+            lons = input("Enter min and max longitudes separated by a comma: ")
+            lats = input("Enter min and max latitudes separated by a comma: ")
+
     if len(lons.split(',')) != 2 or len(lats.split(',')) != 2:
         print("Bad input, try again\n")
         sys.exit()
@@ -101,19 +122,18 @@ def input_area(custom=False):
     return minlon, maxlon, minlat, maxlat
 
 
-def azim_gap(sta_dir, grid, custom=False):
+def azim_gap(sta_dir, grid, custom=False, output_dir='grids', lons='-80,-67', lats='-3,14', dist_thr=150):
 
     if sta_dir in ['no', 'n', 'NO', 'No', 'N', 'default', 'dfalut']:
         scripts_dir = os.path.dirname(os.path.abspath(__file__))
         sta_dir = os.path.join(scripts_dir, 'station_coordinates')
     #sta_dir = input('\nEnter the directory containing the csv files with the stations coordinates:\n\t--> ')
     #grid = float(input('Enter grid step in degrees:\n\t--> '))
-    minlon, maxlon, minlat, maxlat = input_area(custom)
+    minlon, maxlon, minlat, maxlat = input_area(custom, lons, lats)
     Lons = np.arange(minlon, maxlon, grid)
     Lats = np.arange(minlat, maxlat, grid)
 
     # Creatig grids folder if doesn't exist
-    output_dir = 'grids'
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
 
@@ -122,11 +142,11 @@ def azim_gap(sta_dir, grid, custom=False):
 
     with mp.Pool(processes=mp.cpu_count()) as p:
         p.map(write_grid,
-              zip([grid]*n, [Lons]*n, [Lats]*n, [output_dir]*n, sta_files))
+              zip([grid]*n, [Lons]*n, [Lats]*n, [output_dir]*n, sta_files, [dist_thr]*n))
 
 
 def write_grid(arguments):
-    grid, Lons, Lats, output_dir, arc = arguments
+    grid, Lons, Lats, output_dir, arc, dist_thr = arguments
     NET = read_stations(arc)
     basename = os.path.basename(arc).split('.')[0]
     output_file = os.path.join(output_dir, '%s_%s_grid.csv' % (basename, grid))
@@ -134,7 +154,7 @@ def write_grid(arguments):
     out.write('LON,LAT,GAP\n')
     for i in Lons:
         for j in Lats:
-            az_gap = each_gap(i, j, NET)
+            az_gap = each_gap(i, j, NET, dist_thr)
             print(i, j, az_gap)
             out.write('%s,%s,%4.2f\n' % (i, j, az_gap))
     out.close()

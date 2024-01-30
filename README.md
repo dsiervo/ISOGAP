@@ -16,7 +16,7 @@ The main script (gap_heatmap.py) has 3 commands that allow to perform the follow
 
 ## Installation
 ### Prerequisites
-* python 3.7 - 3.9
+* python 3.7 - 3.8
 
 For non anaconda python installations:
 ```
