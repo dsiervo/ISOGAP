@@ -13,6 +13,7 @@
 import numpy as np
 import nvector as nv
 from obspy.geodetics import gps2dist_azimuth
+import pandas as pd
 import sys
 import os
 import multiprocessing as mp
@@ -84,7 +85,7 @@ def each_gap(lon,lat,net, distance_threshold=100):
     return GAP
 
 
-#reads stations file
+"""#reads stations file
 def read_stations(arc):
     with open(arc) as fl:
         count = 0
@@ -99,8 +100,13 @@ def read_stations(arc):
                 point.append(lat)
                 NET[sta] = point
             count += 1
-    return NET
+    return NET"""
 
+def read_stations(arc):
+    df = pd.read_csv(arc)
+    df = df[df['Network Code'] != 'AM']
+    NET = {row['Station Code']: [row['Longitude (WGS84)'], row['Latitude (WGS84)']] for index, row in df.iterrows()}
+    return NET
 
 #Ask for longitudes and latitudes for the study area
 def input_area(custom=False, lons='-80,-67', lats='-3,14'):

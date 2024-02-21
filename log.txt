@@ -1,0 +1,6 @@
+2024-2-20
+python gap_heatmap.py g-h --grids_dir "test_texnet_grids" --stations_dir texnet_stations --grid_step 0.05 --pool_mode avg --lons "-106,-93.5" --lats "27.5,36.5" -c
+
+python gap_heatmap.py heatmaps --grids_dir "test_texnet_grids" --stations_dir texnet_stations --pool_mode avg --lons "-106,-93.5"  --lats "27.5,36.5" -s
+
+
