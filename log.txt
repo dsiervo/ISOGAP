@@ -3,4 +3,5 @@ python gap_heatmap.py g-h --grids_dir "test_texnet_grids" --stations_dir texnet_
 
 python gap_heatmap.py heatmaps --grids_dir "test_texnet_grids" --stations_dir texnet_stations --pool_mode avg --lons "-106,-93.5"  --lats "27.5,36.5" -s
 
-
+2024-03-11
+python gap_heatmap.py heatmaps --grids_dir "test_texnet_grids" --stations_dir texnet_stations --pool_mode avg --lons "-106,-93.5"  --lats "27.5,36.5" -s -p areas_add_stations

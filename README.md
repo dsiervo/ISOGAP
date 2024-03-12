@@ -16,7 +16,7 @@ The main script (gap_heatmap.py) has 3 commands that allow to perform the follow
 
 ## Installation
 ### Prerequisites
-* python 3.7 - 3.8
+* python 3.11
 
 For non anaconda python installations:
 ```
@@ -57,4 +57,9 @@ $ python gap_heatmap.py --help
 To get help about each command, type:
 ```
 $ python gap_heatmap.py [command] --help
+```
+
+To get distance heatmap and gap isolines, open gap-distance-plot.py edit the parameters at the end of the file and run it.
+```sh
+$ python gap-distance-plot.py
 ```

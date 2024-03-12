@@ -19,6 +19,7 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from azim_gap import azim_gap
 import glob
+import json
 from datetime import datetime
 import matplotlib as mpl
 import os
@@ -89,11 +90,13 @@ def grids(stations_dir, grid_step, custom_quad, grids_dir, lons, lat):
 @click.option('-sd', "--stations_dir", required=True, default=None,
               prompt="Directory containing csv files with stations coordinates, to plot them. Press enter if you don't want to plot the stations",
               help='Directory containing the csv files with the stations coordinates to plot them')
-def heatmaps(grids_dir, pool_mode, show, lons, lats, region_coords, stations_dir):
-    make_heatmaps(grids_dir, pool_mode, show, lons, lats, region_coords, stations_dir)
+@click.option('-p', "--polygons_dir", required=False, default=None, prompt="Directory containing the geojson files with the polygons to plot",
+              help='Path of the directory containing the geojson files with the polygons to plot')
+def heatmaps(grids_dir, pool_mode, show, lons, lats, region_coords, stations_dir, polygons_dir):
+    make_heatmaps(grids_dir, pool_mode, show, lons, lats, region_coords, stations_dir, polygons_dir)
 
 
-def make_heatmaps(grids_dir, pool_mode, show, lons, lats, region_coords, stations_dir):
+def make_heatmaps(grids_dir, pool_mode, show, lons, lats, region_coords, stations_dir, polygons_dir):
 
     output_dir = 'output_maps'
     # reading region coordinates
@@ -144,12 +147,12 @@ def make_heatmaps(grids_dir, pool_mode, show, lons, lats, region_coords, station
             df = pd.read_csv(i)
             # only plot contours once
             if c == 0:
-                iso_gap_map(df, file_prefix, lons, lats, sep, main_dir=output_dir, plot=show, stations_dir=stations_dir)
+                iso_gap_map(df, file_prefix, lons, lats, sep, main_dir=output_dir, plot=show, stations_dir=stations_dir, polygons_dir=polygons_dir)
 
-            map_and_grids(df, file_prefix, lons, lats, grid, sep,
+            """map_and_grids(df, file_prefix, lons, lats, grid, sep,
                           pool_mode=pool_mode,
                           output_dir=sub_output_dir,
-                          plot=show, stations_dir=stations_dir)
+                          plot=show, stations_dir=stations_dir)"""
         c += 1
 
     print('\n\n\tArchivos de salida en la carpeta: %s\n'%output_dir)
@@ -194,8 +197,35 @@ def make_heatmaps(grids_dir, pool_mode, show, lons, lats, region_coords, station
         plt.show()
     fig.clf()"""
 
-def iso_gap_map(df, file_prefix, lons, lats, sep, main_dir='mapas', plot=False, stations_dir=None):
+def iso_gap_map(df, file_prefix, lons, lats, sep, main_dir='mapas', plot=False, stations_dir=None, polygons_dir=None):
+    """
+    Create a contour map of the gap azimuthal for a given grid file.
 
+    Parameters
+    ----------
+    df : pandas.DataFrame
+        DataFrame with the azimuthal gap data.
+    file_prefix : str
+        Prefix of the grid file.
+    lons : str
+        Longitude range like "-80,-67".
+    lats : str
+        Latitude range like "-3,14".
+    sep : float
+        Separation of the grid.
+    main_dir : str, optional
+        Directory where the map will be saved. The default is 'mapas'.
+    plot : bool, optional
+        If True, the map will be plotted. The default is False.
+    stations_dir : str, optional
+        Directory containing the csv files with the stations coordinates. The default is None.
+    polygons_dir : str, optional
+        Directory containing the geojson files with the polygons to plot. The default is None.
+
+    Returns
+    -------
+    None
+    """
 
     output_path = os.path.join(main_dir, 'contour_%s_%s.png'%(file_prefix, sep))
     pickle_path = output_path.replace('.png', '.pkl')
@@ -214,9 +244,11 @@ def iso_gap_map(df, file_prefix, lons, lats, sep, main_dir='mapas', plot=False, 
     # Get earthquake data
     print('Getting earthquake data...')
     # get current time in UTC
-    endtime = datetime.utcnow()
-    # get the last 12 months
-    starttime = endtime - pd.Timedelta(360, unit='D')
+    #endtime = datetime.utcnow()
+    # endtime 2024-03-08 and starttime 2023-03-14
+    endtime = datetime(2024, 3, 8)
+    starttime = datetime(2023,3,14)
+    #starttime = endtime - pd.Timedelta(360, unit='D')
     
     # Columns:['Eventid', 'OriginDate', 'OriginTime', 'lat', 'lon', 'depth', 'depth_unc', 'magnitude', 'mag_unc', 'min_sta_dis', 'sec_min_sta_dis', 'az_gap', 'n_picks_p', 'n_picks_s', 'station_count', 'region']
     df_eq = EqData(
@@ -248,6 +280,8 @@ def iso_gap_map(df, file_prefix, lons, lats, sep, main_dir='mapas', plot=False, 
         ic(df_stations.columns)
         # Rename 'Longitude (WGS84)', 'Latitude (WGS84)' and 'Station Code' to 'lon', 'lat' and 'sta'
         df_stations.rename(columns={'Longitude (WGS84)': 'lon', 'Latitude (WGS84)': 'lat', 'Station Code': 'sta'}, inplace=True)
+        df_stations = df_stations[df_stations['Network Code'] != 'AM']
+        
         # keep only the stations that are between lats and lons
         df_stations = df_stations[(df_stations['lon'] >= float(lons.split(',')[0])) &
                                     (df_stations['lon'] <= float(lons.split(',')[1])) &
@@ -281,18 +315,46 @@ def iso_gap_map(df, file_prefix, lons, lats, sep, main_dir='mapas', plot=False, 
     ax.add_feature(cfeature.BORDERS, linestyle=':')
     ax.add_feature(cfeature.STATES.with_scale('10m'))
 
-    #cbar = fig.colorbar(g, orientation='horizontal', shrink=0.5, aspect=20,
-    #                    fraction=0.15)#, pad=0.05)
-    #cbar.set_label('GAP',size=14)
+    # Add polygons to the plot
+    if polygons_dir:
+        add_polygon_from_esri_json(polygons_dir, ax)
+        
+    # Add basins from bna file
+    #add_basins()
+
+    cbar = fig.colorbar(g, orientation='horizontal', shrink=0.5, aspect=20,
+                        fraction=0.15)#, pad=0.05)
+    cbar.set_label('GAP',size=14)
     
     plt.savefig(output_path, bbox_inches='tight', pad_inches=0)
-    
+    print(f'Figure saved in {output_path}')
     with open(pickle_path, 'wb') as f:
         pickle.dump(fig, f)
     if plot:
         plt.show()
     fig.clf()
 
+def add_polygon_to_plot(polygon, ax):
+    """
+    Add a polygon to a plot.
+
+    Parameters
+    ----------
+    polygon : str
+        Path of the geojson file with the polygon to plot.
+    ax : matplotlib.axes._subplots.AxesSubplot
+        Axes where the polygon will be added.
+
+    Returns
+    -------
+    None
+    """
+    with open(polygon, 'r') as f:
+        data = json.load(f)
+    for ring in data['rings']:
+        lon, lat = zip(*ring)
+        print("Plotting polygon...")
+        ax.plot(lon, lat, color='black', linewidth=1, transform=ccrs.PlateCarree())
 
 def pool2d(A, kernel_size, stride, padding, pool_mode='max'):
     '''
@@ -325,6 +387,23 @@ def pool2d(A, kernel_size, stride, padding, pool_mode='max'):
     elif pool_mode == 'avg':
         return A_w.mean(axis=(1,2)).reshape(output_shape)
 
+
+def add_polygon_from_esri_json(polygons_dir, ax):
+    from pyproj import Proj, transform
+    # Define the projection transformation. From Web Mercator (EPSG:3857) to WGS84 (EPSG:4326)
+    proj_from = Proj(init='epsg:3857')
+    proj_to = Proj(init='epsg:4326')
+    
+    geojson_polygons = glob.glob(os.path.join(polygons_dir, '*.json'))
+    for polygon in geojson_polygons:
+        ic(polygon)
+        with open(polygon, 'r') as f:
+            data = json.load(f)
+        for ring in data['rings']:
+            lon_orig, lat_orig = zip(*ring)
+            # Transform the coordinates to WGS84
+            lon, lat = transform(proj_from, proj_to, lon_orig, lat_orig)
+            ax.plot(lon, lat, color='black', linewidth=1, transform=ccrs.PlateCarree())
 
 def make_grid(lat_min=2, lat_max=7, lon_min=-77,
               lon_max=-72, sep=1, df=None, pool_mode='avg'):
