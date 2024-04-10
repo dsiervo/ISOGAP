@@ -19,6 +19,24 @@ import pickle
 import matplotlib.patches as patches
 import glob
 import json
+import datetime
+import time
+import logging
+log_file_name = os.path.basename(__file__).replace('.py', '.log')
+logging.basicConfig(filename=log_file_name, level=logging.DEBUG, format='%(message)s')
+
+def loggin_print(s):
+    logging.debug(s)
+    print(s, file=sys.stderr)
+    
+def time_ic_debug():
+    return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S: ')
+
+def print_ic(msg):
+    ic(msg)
+    print(msg)
+
+ic.configureOutput(prefix=time_ic_debug, outputFunction=loggin_print)
 
 def plot_gap_distance(station_file_path, lons, lats, grid_step, dist_threshold, starttime, endtime, overwrite_grid=False, grid_dir='test_texnet_grids', polygons_dir=None, ask_to_load=False, polygons_kmz_dir=None):
     """
@@ -71,16 +89,24 @@ def plot_gap_distance(station_file_path, lons, lats, grid_step, dist_threshold, 
     grid_file_path = os.path.join(grid_dir, f'{file_prefix}_{grid_step}_grid.csv')
     ic(grid_file_path)
     
+    dist_time_start = time.time()
     fig = plot_distance_countour_map(station_file_path, lons, lats, grid_step, dist_threshold, starttime, endtime, overwrite_grid, ask_to_load=ask_to_load)
+    dist_time_end = time.time()
+    distance_time = dist_time_end - dist_time_start
+    ic(f'Time to calculate distance map: {distance_time} seconds')
     
     ax = fig.get_axes()[0]
     
+    gap_time_start = time.time()
     # check if grid file for GAPS exists
     if not os.path.exists(grid_file_path) or overwrite_grid:
         ic('Calculating gap grid...')
         # get directory of the station file
         sta_dir = os.path.dirname(station_file_path)
         azim_gap(sta_dir, grid_step, custom=True, output_dir=output_dir, lons=lons, lats=lats, dist_thr=dist_threshold)
+    gap_time_end = time.time()
+    gap_time = gap_time_end - gap_time_start
+    ic(f'Time to calculate gap map: {gap_time} seconds')
         
     X, Y, gap_grid = contour_gap_grid(grid_file_path)
     
@@ -190,8 +216,10 @@ if __name__ == '__main__':
     starttime = '2019-01-01 00:00:00'
     endtime = '2024-12-31 23:59:59'
     #preload_distance_map = False
-    polygons_dir = '/home/seiscomp/ISOGAP/areas_add_stations'
-    polygons_kmz_dir = '/home/seiscomp/ISOGAP/kmz_polygons'
+    #polygons_dir = '/home/seiscomp/ISOGAP/areas_add_stations'
+    polygons_dir = None
+    #polygons_kmz_dir = '/home/seiscomp/ISOGAP/kmz_polygons'
+    polygons_kmz_dir = None
     # ask if load pre made distance plot
     # Set to true and then type y when asked if you changed any of the paremeters above (except the earthquakes)
     ask_to_load = False

@@ -18,6 +18,7 @@ import sys
 import os
 import multiprocessing as mp
 import glob
+from math import cos, radians
 """import click
 
 
@@ -105,7 +106,8 @@ def read_stations(arc):
 def read_stations(arc):
     df = pd.read_csv(arc)
     df = df[df['Network Code'] != 'AM']
-    NET = {row['Station Code']: [row['Longitude (WGS84)'], row['Latitude (WGS84)']] for index, row in df.iterrows()}
+    #NET = {row['Station Code']: [row['Longitude (WGS84)'], row['Latitude (WGS84)']] for index, row in df.iterrows()}
+    NET = df.set_index('Station Code')[['Longitude (WGS84)', 'Latitude (WGS84)']].to_dict('list')
     return NET
 
 #Ask for longitudes and latitudes for the study area
@@ -126,6 +128,34 @@ def input_area(custom=False, lons='-80,-67', lats='-3,14'):
         print("Wrong values, try again\n")
         sys.exit()
     return minlon, maxlon, minlat, maxlat
+
+
+def calculate_square_bounds(lat, lon, r):
+    """
+    Calculate the bounding coordinates (min_lon, max_lon, min_lat, max_lat) of a square centered at a given point.
+    
+    Parameters:
+        lat (float): Latitude of the center point.
+        lon (float): Longitude of the center point.
+        r (float): Half the side length of the square in kilometers.
+    
+    Returns:
+        list of str: A list containing two strings, ["min_lon,max_lon", "min_lat,max_lat"].
+    """
+    EARTH_RADIUS = 6371 # km
+    KM_PER_DEGREE_LAT = 111.32 # approximation km/degree
+    
+    # Calculate changes in latitude and longitude
+    delta_lat = r / KM_PER_DEGREE_LAT
+    delta_lon = (r / (2 * 3.141592653589793 * EARTH_RADIUS * cos(radians(lat)) / 360))
+    
+    # Calculate bounding values
+    min_lat = lat - delta_lat
+    max_lat = lat + delta_lat
+    min_lon = lon - delta_lon
+    max_lon = lon + delta_lon
+    
+    return [f"{min_lon},{max_lon}", f"{min_lat},{max_lat}"]
 
 
 def azim_gap(sta_dir, grid, custom=False, output_dir='grids', lons='-80,-67', lats='-3,14', dist_thr=150):
