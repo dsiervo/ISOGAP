@@ -22,23 +22,16 @@ import json
 import datetime
 import time
 import logging
-log_file_name = os.path.basename(__file__).replace('.py', '.log')
+log_file_name = "log_" + os.path.basename(__file__).replace('.py', '.log')
 logging.basicConfig(filename=log_file_name, level=logging.DEBUG, format='%(message)s')
 
 def loggin_print(s):
     logging.debug(s)
     print(s, file=sys.stderr)
-    
-def time_ic_debug():
-    return datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S: ')
 
-def print_ic(msg):
-    ic(msg)
-    print(msg)
+#ic.configureOutput(prefix=time_ic_debug, outputFunction=loggin_print)
 
-ic.configureOutput(prefix=time_ic_debug, outputFunction=loggin_print)
-
-def plot_gap_distance(station_file_path, lons, lats, grid_step, dist_threshold, starttime, endtime, overwrite_grid=False, grid_dir='test_texnet_grids', polygons_dir=None, ask_to_load=False, polygons_kmz_dir=None):
+def plot_gap_distance(station_file_path, lons, lats, grid_step, dist_threshold, starttime, endtime, overwrite_grid=False, grid_dir='test_texnet_grids', polygons_dir=None, ask_to_load=False, polygons_kmz_dir=None, load_dis_pickle=True):
     """
     From a list of stations given, creates a rectangular grid between lons and lats and calculates
     how many stations are within a certain distance threshold from each point of the grid.
@@ -89,11 +82,14 @@ def plot_gap_distance(station_file_path, lons, lats, grid_step, dist_threshold, 
     grid_file_path = os.path.join(grid_dir, f'{file_prefix}_{grid_step}_grid.csv')
     ic(grid_file_path)
     
+    
     dist_time_start = time.time()
-    fig = plot_distance_countour_map(station_file_path, lons, lats, grid_step, dist_threshold, starttime, endtime, overwrite_grid, ask_to_load=ask_to_load)
+    print('Calculating distance map...')
+    fig = plot_distance_countour_map(station_file_path, lons, lats, grid_step, dist_threshold, starttime, endtime, overwrite_grid, ask_to_load=ask_to_load, load_pickle=load_dis_pickle)
     dist_time_end = time.time()
     distance_time = dist_time_end - dist_time_start
-    ic(f'Time to calculate distance map: {distance_time} seconds')
+    loggin_print(f'\nTime to calculate distance map: {distance_time} seconds\n')
+    
     
     ax = fig.get_axes()[0]
     
@@ -106,14 +102,13 @@ def plot_gap_distance(station_file_path, lons, lats, grid_step, dist_threshold, 
         azim_gap(sta_dir, grid_step, custom=True, output_dir=output_dir, lons=lons, lats=lats, dist_thr=dist_threshold)
     gap_time_end = time.time()
     gap_time = gap_time_end - gap_time_start
-    ic(f'Time to calculate gap map: {gap_time} seconds')
         
     X, Y, gap_grid = contour_gap_grid(grid_file_path)
     
     levels = [0, 60, 90, 120, 360]
     g = ax.contour(X, Y, gap_grid, levels=levels, transform=ccrs.PlateCarree(), colors=('tab:blue', 'tab:green', 'tab:orange', 'tab:red'))
     ax.clabel(g, inline=True, fontsize=10, fmt='%d')
-
+    loggin_print(f'\nTime to calculate gap map: {gap_time} seconds\n')
     # Add polygons to the plot
     #bna_file_path = '/home/seiscomp/.seiscomp3/bna/del/del.bna'
     #add_polygon_to_plot(bna_file_path, ax)
@@ -212,17 +207,20 @@ if __name__ == '__main__':
     lons = "-106,-93"
     lats = "28.2,36.5"
     grid_step = 0.05
+    #grid_step = 0.5
     dist_threshold = 5
     starttime = '2019-01-01 00:00:00'
     endtime = '2024-12-31 23:59:59'
     #preload_distance_map = False
     #polygons_dir = '/home/seiscomp/ISOGAP/areas_add_stations'
     polygons_dir = None
-    #polygons_kmz_dir = '/home/seiscomp/ISOGAP/kmz_polygons'
+    #polygons_kmz_dir = '/home/seiscomp/ISOGAP/kmz_polygons'd
     polygons_kmz_dir = None
-    # ask if load pre made distance plot
-    # Set to true and then type y when asked if you changed any of the paremeters above (except the earthquakes)
-    ask_to_load = False
-    overwrite_grid = False
-    fig = plot_gap_distance(station_file, lons, lats, grid_step, dist_threshold, starttime, endtime, polygons_dir=polygons_dir, ask_to_load=ask_to_load, overwrite_grid=overwrite_grid, polygons_kmz_dir=polygons_kmz_dir)
+    load_piclke_distance_map = False
+    overwrite_grid = True
+    grid_dir = 'gap_distance_map'
+    fig = plot_gap_distance(station_file, lons, lats, grid_step, dist_threshold, starttime, endtime,
+                            grid_dir=grid_dir, load_dis_pickle=load_piclke_distance_map,
+                            polygons_dir=polygons_dir, overwrite_grid=overwrite_grid,
+                            polygons_kmz_dir=polygons_kmz_dir)
     plt.plot()

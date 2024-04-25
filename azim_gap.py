@@ -106,8 +106,8 @@ def read_stations(arc):
 def read_stations(arc):
     df = pd.read_csv(arc)
     df = df[df['Network Code'] != 'AM']
-    #NET = {row['Station Code']: [row['Longitude (WGS84)'], row['Latitude (WGS84)']] for index, row in df.iterrows()}
-    NET = df.set_index('Station Code')[['Longitude (WGS84)', 'Latitude (WGS84)']].to_dict('list')
+    #NET_old = {row['Station Code']: [row['Longitude (WGS84)'], row['Latitude (WGS84)']] for index, row in df.iterrows()}
+    NET = df.set_index('Station Code')[['Longitude (WGS84)', 'Latitude (WGS84)']].T.to_dict('list')
     return NET
 
 #Ask for longitudes and latitudes for the study area
@@ -191,7 +191,7 @@ def write_grid(arguments):
     for i in Lons:
         for j in Lats:
             az_gap = each_gap(i, j, NET, dist_thr)
-            print(i, j, az_gap)
+            #print(i, j, az_gap)
             out.write('%s,%s,%4.2f\n' % (i, j, az_gap))
     out.close()
     print('\n\t%s was created\n' % output_file)

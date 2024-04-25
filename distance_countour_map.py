@@ -56,18 +56,19 @@ def plot_distance_countour_map(station_file, lons, lats, grid_step, dist_thresho
             # Ask if the user wants to load the figure from the pickle file or recalculate it
             answer = input(f'Figure {pickle_path} already exists. Do you want to load it instead of recalculating it? (y/n) ')
             plot = True if answer.lower() == 'y' else False
+            if answer.lower() == 'y':
+                print(f'Loading figure from {pickle_path}...')
+                with open(pickle_path, 'rb') as f:
+                    fig = pickle.load(f)
+                if plot:
+                    plt.show()
+                return fig
+            else:
+                print(f'Recalculating figure and saving it to {pickle_path}...')
         else:
             plot = False
             answer = 'y' if load_pickle else 'n'
-        if answer.lower() == 'y':
-            print(f'Loading figure from {pickle_path}...')
-            with open(pickle_path, 'rb') as f:
-                fig = pickle.load(f)
-            if plot:
-                plt.show()
-            return fig
-        else:
-            print(f'Recalculating figure and saving it to {pickle_path}...')
+
     # Columns:['Eventid', 'OriginDate', 'OriginTime', 'lat', 'lon', 'depth', 'depth_unc', 'magnitude', 'mag_unc', 'min_sta_dis', 'sec_min_sta_dis', 'az_gap', 'n_picks_p', 'n_picks_s', 'station_count', 'region']
     print(f'Getting earthquake data from {starttime} to {endtime}...')
     df_eq = EqData(
@@ -165,8 +166,9 @@ def plot_distance_countour_map(station_file, lons, lats, grid_step, dist_thresho
     # Save the figure
     with open(pickle_path, 'wb') as f:
         pickle.dump(fig, f)
-    
-    plt.show()
+        plt.plot()
+    #if plot:
+        #plt.show()
     return fig
 
 def write_grid_to_csv(grid_lons, grid_lats, count, filename):
